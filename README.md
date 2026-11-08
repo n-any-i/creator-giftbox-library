@@ -2,9 +2,9 @@
 
 A visual swipe file of the PR gift boxes brands send to creators, built for creator marketing managers, TikTok Shop and social commerce managers, and the packaging teams who design the boxes. Each entry shows a box from several angles, what is inside, why it works for the brand, what to take from it, and a qualitative read on how creators reacted.
 
-**Status:** private prototype. 29 boxes, 27 brands, 7 categories. Not yet public.
+**Status:** 40 boxes, 34 brands, 7 categories. Preparing for public launch on Cloudflare Pages (see `docs/roadmap.md`).
 
-**Image note:** the images in `data/images/` are the original captured frames (320 pixels wide). The live Claude Artifact preview built earlier still shows copies resized to 300 pixels and re-compressed (quality 72); rebuilding it with `scripts/build_preview.py` gives the sharper originals but fits fewer boxes (about 43).
+**Image note:** frames in `data/images/` are captured locally (yt-dlp + ffmpeg, see `scripts/capture/RECIPE.md`) at 760px wide or the source's native resolution if narrower, never resized or re-compressed after capture. The public build (`scripts/build_site.py`) serves them as plain files with no size cap; the legacy single-file build (`scripts/build_preview.py`) still embeds everything as base64 and is capped at ~16MB (roughly 40 boxes at this quality).
 
 ## Folder structure
 
@@ -18,9 +18,10 @@ creator-giftbox-library/
 │  ├─ data-schema.md          the box data format and validation rules
 │  ├─ contributor-guide.md    what people send us and what they get
 │  ├─ rights-and-ethics.md    permissions, faces, takedowns, open legal questions
+│  ├─ publishing.md           how to deploy to Cloudflare Pages and back up to GitHub
 │  ├─ roadmap.md              phases from prototype to public site, open decisions
-│  ├─ workflow-and-tooling.md the Aident tool chain used so far, what failed and why
-│  └─ continue-in-new-chat.md how to resume capture work in a fresh Claude chat
+│  ├─ workflow-and-tooling.md historical: the Aident/chat tool chain, superseded (see capture/RECIPE.md)
+│  └─ continue-in-new-chat.md how to resume capture work in a fresh Claude Code session
 ├─ data/
 │  ├─ boxes.json              source of truth: one object per box (no image bytes)
 │  ├─ images/<box-id>/NN.jpg  the screenshots, numbered in story order
@@ -29,7 +30,9 @@ creator-giftbox-library/
 │  ├─ giftbox_data.py         load, add, remove, validate boxes
 │  ├─ build_preview.py        builds one single-file HTML preview into dist/
 │  ├─ giftbox_tools_artifact.py   legacy helper that edits the published Claude Artifact directly
-│  ├─ capture/                helper scripts for the Aident frame-capture route
+│  ├─ bin/ffmpeg               static ffmpeg binary (no Homebrew/Xcode needed)
+│  ├─ capture/RECIPE.md        current capture pipeline: yt-dlp + local ffmpeg, no relay
+│  ├─ capture/{dec,ws}.py      historical: old Aident/wsrv.nl relay helpers, superseded
 │  └─ test/smoke.js           simulated-browser test (needs: npm i jsdom)
 ├─ site/
 │  └─ template.html           the page template (filters, story and flat-lay views)
@@ -39,10 +42,12 @@ creator-giftbox-library/
 ## Quick start
 
 ```bash
-pip install pillow
 python scripts/giftbox_data.py          # validate the data; must print OK
-python scripts/build_preview.py         # writes dist/pr-giftbox-library.html (open it in a browser); images are embedded untouched
+python scripts/build_site.py            # writes dist/site/ (index.html + boxes.json + images/): the public, hostable build
+python scripts/build_preview.py         # writes dist/pr-giftbox-library.html: legacy single-file build, images embedded, capped at ~43 boxes
 ```
+
+To publish: build the site, then drag the `dist/site/` folder into Cloudflare Pages (or any static host) as a direct upload. No git required for this step.
 
 To add a box: put its frames somewhere, call `make_box(...)` and `add_box(...)` from `scripts/giftbox_data.py`, run `validate`, rebuild, commit. Details: `docs/data-schema.md` and `docs/continue-in-new-chat.md`.
 
@@ -57,4 +62,4 @@ To add a box: put its frames somewhere, call `make_box(...)` and `add_box(...)` 
 
 ## Not yet decided
 
-License, public hosting, and the final contributor intake flow. See `docs/roadmap.md` and `docs/rights-and-ethics.md`. No license file is included on purpose.
+License, the faces-in-frames policy, and the final contributor intake flow. Hosting is decided (Cloudflare Pages). See `docs/roadmap.md` and `docs/rights-and-ethics.md`. No license file is included on purpose.
